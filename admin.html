@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Order Management | EZ-UP Atlantic</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="css/styles.css?v=3">
+  <style>
+    .admin-layout{max-width:1400px;margin:0 auto;padding:24px}
+    .admin-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+    .admin-header h1{font-size:1.6rem;font-weight:800}
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px}
+    .stat-card{background:#fff;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-md);padding:20px;text-align:center}
+    .stat-card .value{font-size:1.8rem;font-weight:800;color:var(--brand-blue)}
+    .stat-card .label{font-size:.75rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+    .orders-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--brand-gray-medium)}
+    .orders-table th{background:var(--brand-blue);color:#fff;text-align:left;padding:12px 16px;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px}
+    .orders-table td{padding:12px 16px;border-bottom:1px solid var(--brand-gray-medium);font-size:.85rem;vertical-align:middle}
+    .orders-table tr:hover td{background:rgba(0,59,113,0.02)}
+    .status-badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;text-transform:uppercase}
+    .status-paid{background:#dcfce7;color:#166534}
+    .status-shipped{background:#dbeafe;color:#1e40af}
+    .status-pending{background:#fef3c7;color:#92400e}
+    .status-cancelled{background:#fee2e2;color:#991b1b}
+    .order-detail-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000}
+    .order-detail-modal.open{display:flex;align-items:center;justify-content:center}
+    .order-detail-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5)}
+    .order-detail-content{position:relative;background:#fff;border-radius:var(--radius-md);max-width:700px;width:90%;max-height:85vh;overflow-y:auto;padding:32px}
+    .order-detail-content h2{margin-top:0;color:var(--brand-blue)}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+    .detail-field label{font-size:.7rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:.5px}
+    .detail-field p{margin:4px 0 0;font-weight:600;font-size:.9rem}
+    .detail-items{margin-top:16px}
+    .detail-items table{width:100%;font-size:.85rem;border-collapse:collapse}
+    .detail-items th{text-align:left;padding:8px;border-bottom:2px solid var(--brand-blue);font-size:.7rem;text-transform:uppercase;color:var(--text-secondary)}
+    .detail-items td{padding:8px;border-bottom:1px solid var(--brand-gray-medium)}
+    .status-select{padding:6px 12px;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-sm);font-family:inherit;font-size:.85rem}
+    .no-orders{text-align:center;padding:60px;color:var(--text-secondary)}
+    .refresh-btn{background:none;border:1px solid var(--brand-gray-medium);padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;font-family:inherit}
+    .refresh-btn:hover{border-color:var(--brand-blue);color:var(--brand-blue)}
+  </style>
+</head>
+<body>
+  <div class="top-bar"><div class="container">EZ-UP Atlantic -- Admin Panel</div></div>
+  <header class="header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><div><div class="logo-text">EZ-UP <span>Atlantic</span></div><div class="logo-sub">Admin Panel</div></div></a>
+                  <nav class="nav-links">
+        <a href="index.html">Home</a>
+        
+        <!-- Canopy Tents Mega Menu -->
+        <div class="nav-item-dropdown">
+          <a href="products.html?cat=canopy-tents">Canopy Tents <span style="font-size:0.7rem;vertical-align:middle;">▼</span></a>
+          <div class="mega-menu">
+            <div class="mega-images-row">
+              <a href="products.html?cat=heavy-duty" class="mega-image-card">
+                <img src="images/products/eclipse-shelter-51152011198639.webp" alt="Best Sellers">
+                <div class="mega-image-title">Best Sellers</div>
+              </a>
+              <a href="products.html?cat=canopy-bundles" class="mega-image-card">
+                <img src="images/products/vista-camping-cube-sport-bundle-43441940037935.png" alt="Canopy Bundles">
+                <div class="mega-image-title">Canopy Bundles</div>
+              </a>
+              <a href="products.html?cat=accessories" class="mega-image-card">
+                <img src="images/products/vantage-camping-cube.jpg" alt="Canopy Accessories">
+                <div class="mega-image-title">Canopy Accessories</div>
+              </a>
+              <a href="products.html?cat=industrial-grade" class="mega-image-card">
+                <img src="images/products/endeavor-max-canopy-45839621816623.png" alt="Industrial Grade">
+                <div class="mega-image-title">Industrial Grade</div>
+              </a>
+            </div>
+            <div class="mega-links-row">
+              <div class="mega-col">
+                <h4>Shop By Category</h4>
+                <a href="products.html?cat=light-duty">Light Duty</a>
+                <a href="products.html?cat=medium-duty">Medium Duty</a>
+                <a href="products.html?cat=heavy-duty">Heavy Duty</a>
+              </div>
+              <div class="mega-col">
+                <h4>Shop By Size</h4>
+                <a href="products.html?size=10x10">10' x 10'</a>
+                <a href="products.html?size=10x15">10' x 15'</a>
+                <a href="products.html?size=10x20">10' x 20'</a>
+                <a href="products.html?cat=canopy-tents" style="font-weight:700; margin-top:8px;">View All</a>
+              </div>
+              <div class="mega-col">
+                <h4>Shop By Price</h4>
+                <a href="products.html?sort=price-asc">Price: Low to High</a>
+                <a href="products.html?sort=price-desc">Price: High to Low</a>
+              </div>
+              <div class="mega-col">
+                <h4>Shop By Use</h4>
+                <a href="products.html?cat=industrial-grade">Business & Promotion</a>
+                <a href="products.html?cat=light-duty">Outdoor Recreation</a>
+                <a href="products.html?cat=medium-duty">Schools & Teams</a>
+                <a href="products.html?cat=industrial-grade">Industrial Safety</a>
+              </div>
+              <div class="mega-col">
+                <h4>Featured</h4>
+                <a href="product.html?id=dewalt-work-shelter">DEWALT® Work Shelter</a>
+                <a href="product.html?id=endeavor-max-canopy">Endeavor Max Canopy</a>
+                <a href="product.html?id=eclipse-shelter">Eclipse Shelter</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Printing Mega Menu -->
+        <div class="nav-item-dropdown">
+          <a href="products.html?cat=custom-printing">Custom Printing <span style="font-size:0.7rem;vertical-align:middle;">▼</span></a>
+          <div class="mega-menu" style="min-width:700px;">
+            <div class="mega-images-row">
+              <a href="products.html?cat=custom-canopies" class="mega-image-card">
+                <img src="images/products/custom-vantage-package.webp" alt="Custom Canopies">
+                <div class="mega-image-title">Custom Canopies</div>
+              </a>
+              <a href="products.html?cat=custom-flags" class="mega-image-card">
+                <img src="images/products/blade.jpg" alt="Custom Flags">
+                <div class="mega-image-title">Custom Flags</div>
+              </a>
+              <a href="products.html?cat=table-covers-chairs" class="mega-image-card">
+                <img src="images/products/instant-table-covers-43224424317103.jpg" alt="Table Covers & Chairs">
+                <div class="mega-image-title">Table Covers & Chairs</div>
+              </a>
+              <a href="products.html?cat=banners-signage" class="mega-image-card">
+                <img src="images/products/hanging-banners.webp" alt="Banners & Signage">
+                <div class="mega-image-title">Banners & Signage</div>
+              </a>
+            </div>
+            <div class="mega-links-row">
+              <div class="mega-col">
+                <h4>Custom Products</h4>
+                <a href="products.html?cat=custom-canopies">Custom Canopies</a>
+                <a href="products.html?cat=custom-packages">Custom Packages</a>
+                <a href="products.html?cat=custom-flags">Custom Flags</a>
+                <a href="products.html?cat=table-covers-chairs">Table Covers & Chairs</a>
+              </div>
+              <div class="mega-col">
+                <h4>Displays & Signs</h4>
+                <a href="products.html?cat=event-system">E-Z Event System™</a>
+                <a href="products.html?cat=custom-sidewalls">Custom Sidewalls</a>
+                <a href="products.html?cat=banners-signage">Banners & Signage</a>
+                <a href="products.html?cat=inflatables">Inflatables</a>
+              </div>
+              <div class="mega-col">
+                <h4>Accessories</h4>
+                <a href="products.html?cat=indoor-displays">Indoor Displays</a>
+                <a href="products.html?cat=custom-accessories">Custom Accessories</a>
+                <a href="products.html?cat=custom-printing" style="font-weight:700; margin-top:8px;">View All Custom</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accessories Mega Menu -->
+        <div class="nav-item-dropdown">
+          <a href="products.html?cat=accessories">Accessories <span style="font-size:0.7rem;vertical-align:middle;">▼</span></a>
+          <div class="mega-menu" style="min-width:700px;">
+            <div class="mega-images-row">
+              <a href="products.html?cat=canopy-sidewalls" class="mega-image-card">
+                <img src="images/products/value-sidewall.webp" alt="Canopy Sidewalls">
+                <div class="mega-image-title">Canopy Sidewalls</div>
+              </a>
+              <a href="products.html?cat=anchoring" class="mega-image-card">
+                <img src="images/products/weight-plates-45811776979119.jpg" alt="Anchoring">
+                <div class="mega-image-title">Anchoring</div>
+              </a>
+              <a href="products.html?cat=camping-cubes" class="mega-image-card">
+                <img src="images/products/vantage-camping-cube.jpg" alt="Camping & Screen Cubes">
+                <div class="mega-image-title">Camping & Cubes</div>
+              </a>
+              <a href="products.html?cat=lighting" class="mega-image-card">
+                <img src="images/products/60w-led-balloon-light.webp" alt="Lighting">
+                <div class="mega-image-title">Lighting</div>
+              </a>
+            </div>
+            <div class="mega-links-row">
+              <div class="mega-col">
+                <h4>Essentials</h4>
+                <a href="products.html?cat=canopy-sidewalls">Canopy Sidewalls</a>
+                <a href="products.html?cat=anchoring">Anchoring Essentials</a>
+                <a href="products.html?cat=roller-bags">Roller Bag & Storage</a>
+              </div>
+              <div class="mega-col">
+                <h4>Add-Ons</h4>
+                <a href="products.html?cat=camping-cubes">Camping & Screen Cubes</a>
+                <a href="products.html?cat=lighting">Lighting</a>
+                <a href="products.html?cat=chairs-benches">Chairs & Benches</a>
+              </div>
+              <div class="mega-col">
+                <h4>Parts & Gear</h4>
+                <a href="products.html?cat=instant-table">Instant Table™</a>
+                <a href="products.html?cat=gearrunner">Gearrunner™</a>
+                <a href="products.html?cat=brackets">E-Z Brackets</a>
+                <a href="products.html?cat=replacement-parts">Replacement Parts</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <div class="admin-header">
+      <h1>Order Management</h1>
+      <button class="refresh-btn" onclick="loadOrders()">Refresh</button>
+    </div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <table class="orders-table">
+      <thead>
+        <tr>
+          <th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Delivery</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="orders-body">
+        <tr><td colspan="8" class="no-orders">Loading orders...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div class="order-detail-modal" id="order-modal">
+    <div class="order-detail-overlay" onclick="closeModal()"></div>
+    <div class="order-detail-content" id="order-detail"></div>
+  </div>
+
+  <script>
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/stats');
+        const s = res.ok ? await res.json() : {};
+        document.getElementById('stats-grid').innerHTML = `
+          <div class="stat-card"><div class="value">${s.total_orders || 0}</div><div class="label">Total Orders</div></div>
+          <div class="stat-card"><div class="value">$${(s.total_revenue || 0).toLocaleString('en-CA',{minimumFractionDigits:2})}</div><div class="label">Total Revenue</div></div>
+          <div class="stat-card"><div class="value">${s.today_orders || 0}</div><div class="label">Today's Orders</div></div>
+          <div class="stat-card"><div class="value">${s.paid || 0}</div><div class="label">Paid</div></div>
+          <div class="stat-card"><div class="value">${s.shipped || 0}</div><div class="label">Shipped</div></div>
+          <div class="stat-card"><div class="value">${s.pending || 0}</div><div class="label">Pending</div></div>
+        `;
+      } catch(e) { console.error(e); }
+    }
+
+    async function loadOrders() {
+      try {
+        const res = await fetch('/api/admin/orders');
+        const orders = res.ok ? await res.json() : [];
+        const tbody = document.getElementById('orders-body');
+        if (!orders.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="no-orders">No orders yet. They will appear here after customers complete checkout.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = orders.map(o => {
+          const date = new Date(o.created_at).toLocaleDateString('en-CA');
+          const itemCount = (o.items||[]).reduce((s,i)=>s+(i.qty||1),0);
+          return `<tr>
+            <td><strong>${o.order_number}</strong></td>
+            <td>${date}</td>
+            <td>${o.customer_name||'--'}<br><small style="color:var(--text-secondary)">${o.customer_email||''}</small></td>
+            <td>${itemCount} item${itemCount!==1?'s':''}</td>
+            <td><strong>$${(o.total||0).toLocaleString('en-CA',{minimumFractionDigits:2})}</strong></td>
+            <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+            <td>${(o.shipping_method||'pickup').replace('shipping','Ship').replace('pickup','Pickup')}</td>
+            <td><button onclick="viewOrder('${o.order_number}')" style="background:none;border:none;color:var(--brand-blue);cursor:pointer;font-weight:600;font-size:.85rem;">View</button></td>
+          </tr>`;
+        }).join('');
+      } catch(e) {
+        document.getElementById('orders-body').innerHTML = '<tr><td colspan="8" class="no-orders">Error loading orders</td></tr>';
+      }
+    }
+
+    async function viewOrder(num) {
+      try {
+        const res = await fetch('/api/admin/orders/' + num);
+        const o = res.ok ? await res.json() : null;
+        if (!o) return;
+        const items = o.items || [];
+        const shipping = o.shipping_address || {};
+        document.getElementById('order-detail').innerHTML = `
+          <h2>Order ${o.order_number}</h2>
+          <div class="detail-grid">
+            <div class="detail-field"><label>Customer</label><p>${o.customer_name}</p></div>
+            <div class="detail-field"><label>Email</label><p>${o.customer_email}</p></div>
+            <div class="detail-field"><label>Phone</label><p>${o.customer_phone||'--'}</p></div>
+            <div class="detail-field"><label>Date</label><p>${new Date(o.created_at).toLocaleString('en-CA')}</p></div>
+            <div class="detail-field"><label>Delivery</label><p>${o.shipping_method==='shipping'?'Shipping':'Local Pickup'}</p></div>
+            <div class="detail-field"><label>Province</label><p>${o.province}</p></div>
+            ${shipping.address?`<div class="detail-field" style="grid-column:1/-1"><label>Shipping Address</label><p>${shipping.address}${shipping.address2?', '+shipping.address2:''}, ${shipping.city}, ${shipping.province} ${shipping.postal}</p></div>`:''}
+          </div>
+          <div class="detail-items">
+            <table>
+              <thead><tr><th>Item</th><th>Variant</th><th>Qty</th><th style="text-align:right">Price</th></tr></thead>
+              <tbody>${items.map(i=>`<tr><td>${i.name}</td><td>${i.variant||'--'}</td><td>${i.qty}</td><td style="text-align:right">$${((i.price||0)*i.qty).toFixed(2)}</td></tr>`).join('')}</tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px;text-align:right;font-size:.9rem;">
+            <div>Subtotal: $${(o.subtotal||0).toFixed(2)}</div>
+            <div>Tax (${o.province}): $${(o.tax_amount||0).toFixed(2)}</div>
+            <div style="font-size:1.2rem;font-weight:800;color:var(--brand-blue);margin-top:8px;">Total: $${(o.total||0).toFixed(2)} CAD</div>
+          </div>
+          <div style="margin-top:24px;display:flex;gap:12px;align-items:center;border-top:1px solid var(--brand-gray-medium);padding-top:16px;">
+            <label style="font-weight:600;font-size:.85rem;">Update Status:</label>
+            <select class="status-select" id="status-select" value="${o.status}">
+              <option value="paid" ${o.status==='paid'?'selected':''}>Paid</option>
+              <option value="processing" ${o.status==='processing'?'selected':''}>Processing</option>
+              <option value="shipped" ${o.status==='shipped'?'selected':''}>Shipped</option>
+              <option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option>
+              <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option>
+            </select>
+            <button class="btn btn-primary" style="padding:8px 20px;font-size:.85rem;" onclick="updateStatus('${o.order_number}')">Save</button>
+            <button style="margin-left:auto;background:none;border:1px solid var(--brand-gray-medium);padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;" onclick="closeModal()">Close</button>
+          </div>
+        `;
+        document.getElementById('order-modal').classList.add('open');
+      } catch(e) { console.error(e); }
+    }
+
+    async function updateStatus(num) {
+      const status = document.getElementById('status-select').value;
+      await fetch('/api/admin/orders/' + num + '/status', {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({status})
+      });
+      closeModal();
+      loadOrders();
+      loadStats();
+    }
+
+    function closeModal() {
+      document.getElementById('order-modal').classList.remove('open');
+    }
+
+    loadStats();
+    loadOrders();
+  </script>
+</body>
+</html>
