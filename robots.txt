@@ -1,0 +1,13 @@
+# Sitemap for EZ-UP Atlantic
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /data/
+Disallow: /api/
+Disallow: /__pycache__/
+
+# Sitemap location
+Sitemap: https://ezupatlantic.ca/sitemap.xml
+
+# Crawl-delay (be polite)
+Crawl-delay: 1
