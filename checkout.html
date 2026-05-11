@@ -7,44 +7,79 @@
  <meta name="description" content="Complete your purchase from EZ-UP Atlantic. Secure checkout powered by Stripe.">
  <link rel="stylesheet" href="css/styles.css?v=3">
  <style>
-  .checkout-layout{display:grid;grid-template-columns:1fr 420px;gap:48px;align-items:start}
-  .checkout-section{background:#fff;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-md);padding:32px;margin-bottom:24px}
-  .checkout-section h2{font-size:1.2rem;font-weight:700;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--brand-gray-medium)}
-  .checkout-section h2 .step{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--brand-blue);color:#fff;border-radius:50%;font-size:.75rem;margin-right:10px}
-  .delivery-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .delivery-option{border:2px solid var(--brand-gray-medium);border-radius:var(--radius-md);padding:16px;cursor:pointer;transition:all .2s;text-align:center}
-  .delivery-option:hover{border-color:var(--brand-blue)}
-  .delivery-option.active{border-color:var(--brand-blue);background:rgba(0,59,113,0.04)}
-  .delivery-option .icon{font-size:1.5rem;margin-bottom:6px}
-  .delivery-option .label{font-weight:700;font-size:.85rem}
-  .delivery-option .desc{font-size:.75rem;color:var(--text-secondary);margin-top:4px}
-  .order-summary{position:sticky;top:100px}
-  .summary-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--brand-gray-medium)}
-  .summary-item-img{width:56px;height:56px;background:var(--brand-gray);border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:4px}
-  .summary-item-img img{max-width:100%;max-height:100%;object-fit:contain}
-  .summary-item-info{flex:1;min-width:0}
-  .summary-item-name{font-weight:600;font-size:.8rem;line-height:1.3}
-  .summary-item-variant{font-size:.7rem;color:var(--text-secondary)}
-  .summary-item-qty{font-size:.7rem;color:var(--text-secondary);margin-top:2px}
-  .summary-item-price{font-weight:700;font-size:.85rem;color:var(--brand-blue);white-space:nowrap;margin-left:8px}
-  .summary-totals{margin-top:16px}
-  .summary-row{display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem}
-  .summary-row.total{font-size:1.1rem;font-weight:800;padding-top:12px;margin-top:8px;border-top:2px solid var(--brand-blue);color:var(--brand-blue)}
-  .summary-row .tax-label{color:var(--text-secondary);font-size:.8rem}
-  .pay-btn{width:100%;padding:16px;font-size:1rem;font-weight:700;border-radius:var(--radius-full);border:none;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand-blue);color:#fff;margin-top:16px}
-  .pay-btn:hover{background:var(--brand-blue-light);transform:translateY(-1px);box-shadow:var(--shadow-lg)}
-  .pay-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-  .pay-btn .lock{font-size:.85rem}
-  .secure-badge{text-align:center;margin-top:12px;font-size:.75rem;color:var(--text-secondary)}
-  .empty-checkout{text-align:center;padding:80px 20px;grid-column:1/-1}
-  .empty-checkout h2{font-size:1.5rem;margin-bottom:12px}
-  .same-address-check{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.9rem;font-weight:500;padding:4px 0}
-  .same-address-check input[type="checkbox"]{width:18px;height:18px;accent-color:var(--brand-blue);cursor:pointer}
-  .breadcrumb{font-size:.8rem;color:var(--text-secondary);margin-bottom:8px}
-  .breadcrumb a{color:var(--brand-blue);text-decoration:none}
-  .breadcrumb a:hover{text-decoration:underline}
-  @media(max-width:768px){.checkout-layout{grid-template-columns:1fr}.order-summary{position:static}}
- </style>
+   /* Checkout Layout */
+   .checkout-layout{display:grid;grid-template-columns:1fr 420px;gap:48px;align-items:start}
+   .checkout-section{background:#fff;border:1px solid #e8e8e8;border-radius:16px;padding:36px;margin-bottom:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
+   .checkout-section h2{font-size:1.15rem;font-weight:700;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px}
+   .checkout-section h2 .step{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--brand-blue);color:#fff;border-radius:50%;font-size:.75rem;font-weight:800;flex-shrink:0}
+
+   /* Form Inputs */
+   .form-group{margin-bottom:16px}
+   .form-group label{display:block;font-size:.8rem;font-weight:600;color:#4a5568;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+   .form-group input, .form-group select{
+    width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;
+    font-family:inherit;color:#1a202c;background:#fafbfc;transition:all .2s ease;
+    box-sizing:border-box;outline:none;appearance:none;-webkit-appearance:none;
+   }
+   .form-group input:focus, .form-group select:focus{border-color:var(--brand-blue);background:#fff;box-shadow:0 0 0 3px rgba(0,59,113,0.08)}
+   .form-group input::placeholder{color:#a0aec0}
+   .form-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23718096' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px;cursor:pointer}
+   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+   /* Delivery Options */
+   .delivery-options{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+   .delivery-option{border:2px solid #e2e8f0;border-radius:12px;padding:20px 16px;cursor:pointer;transition:all .25s ease;text-align:center;background:#fafbfc}
+   .delivery-option:hover{border-color:var(--brand-blue);background:rgba(0,59,113,0.02);transform:translateY(-1px)}
+   .delivery-option.active{border-color:var(--brand-blue);background:rgba(0,59,113,0.04);box-shadow:0 0 0 3px rgba(0,59,113,0.08)}
+   .delivery-option .icon{font-size:1.5rem;margin-bottom:8px}
+   .delivery-option .label{font-weight:700;font-size:.85rem;color:var(--brand-blue)}
+   .delivery-option .desc{font-size:.72rem;color:var(--text-secondary);margin-top:6px;line-height:1.4}
+
+   /* Order Summary */
+   .order-summary{position:sticky;top:100px}
+   .summary-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid #f0f0f0}
+   .summary-item:last-child{border-bottom:none}
+   .summary-item-img{width:60px;height:60px;background:#f7f8fa;border-radius:10px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:6px;border:1px solid #eee}
+   .summary-item-img img{max-width:100%;max-height:100%;object-fit:contain}
+   .summary-item-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+   .summary-item-name{font-weight:600;font-size:.82rem;line-height:1.4;color:#1a202c}
+   .summary-item-variant{font-size:.72rem;color:var(--text-secondary);margin-top:2px}
+   .summary-item-qty{font-size:.72rem;color:var(--text-secondary);margin-top:2px}
+   .summary-item-price{font-weight:700;font-size:.9rem;color:var(--brand-blue);white-space:nowrap;margin-left:12px;align-self:center}
+
+   /* Summary Totals */
+   .summary-totals{margin-top:20px;padding-top:16px;border-top:1px solid #eee}
+   .summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:.85rem;color:#4a5568}
+   .summary-row.total{font-size:1.15rem;font-weight:800;padding-top:16px;margin-top:12px;border-top:2px solid var(--brand-blue);color:var(--brand-blue)}
+   .summary-row .tax-label{color:var(--text-secondary);font-size:.8rem}
+
+   /* Pay Button */
+   .pay-btn{width:100%;padding:18px;font-size:1rem;font-weight:700;border-radius:var(--radius-full);border:none;cursor:pointer;transition:all .25s ease;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg, var(--brand-blue) 0%, #002d5e 100%);color:#fff;margin-top:20px;letter-spacing:0.3px;box-shadow:0 4px 15px rgba(0,59,113,0.25)}
+   .pay-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,59,113,0.35)}
+   .pay-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+   .secure-badge{text-align:center;margin-top:16px;font-size:.72rem;color:var(--text-secondary);line-height:1.6}
+
+   /* Empty Checkout */
+   .empty-checkout{text-align:center;padding:80px 20px;grid-column:1/-1}
+   .empty-checkout h2{font-size:1.5rem;margin-bottom:12px}
+
+   /* Billing Toggle */
+   .same-address-check{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:.9rem;font-weight:500;padding:8px 0;color:#4a5568}
+   .same-address-check input[type="checkbox"]{width:20px;height:20px;accent-color:var(--brand-blue);cursor:pointer;border-radius:4px}
+
+   /* Breadcrumb */
+   .breadcrumb{font-size:.8rem;color:var(--text-secondary);margin-bottom:8px}
+   .breadcrumb a{color:var(--brand-blue);text-decoration:none}
+   .breadcrumb a:hover{text-decoration:underline}
+
+   /* Responsive */
+   @media(max-width:768px){
+    .checkout-layout{grid-template-columns:1fr;gap:24px}
+    .order-summary{position:static}
+    .form-row{grid-template-columns:1fr}
+    .checkout-section{padding:24px}
+   }
+  </style>
 </head>
 <body>
  <div class="top-bar"><div class="container">Authorized E-Z UP® Dealer — All prices in CAD</div></div>
@@ -60,7 +95,7 @@
           <div class="mega-menu">
             <div class="mega-images-row">
               <a href="products.html?cat=heavy-duty" class="mega-image-card">
-                <img src="images/products/eclipse-shelter-51152011198639.webp" alt="Best Sellers">
+                <img src="images/products/eclipse-shelter.webp" alt="Best Sellers">
                 <div class="mega-image-title">Best Sellers</div>
               </a>
               <a href="products.html?cat=canopy-bundles" class="mega-image-card">
@@ -126,7 +161,7 @@
                 <div class="mega-image-title">Custom Flags</div>
               </a>
               <a href="products.html?cat=table-covers-chairs" class="mega-image-card">
-                <img src="images/products/instant-table-covers-43224424317103.jpg" alt="Table Covers & Chairs">
+                <img src="images/products/instant-table-covers-14581461778466.jpg" alt="Table Covers & Chairs">
                 <div class="mega-image-title">Table Covers & Chairs</div>
               </a>
               <a href="products.html?cat=banners-signage" class="mega-image-card">
@@ -169,7 +204,7 @@
                 <div class="mega-image-title">Canopy Sidewalls</div>
               </a>
               <a href="products.html?cat=anchoring" class="mega-image-card">
-                <img src="images/products/weight-plates-45811776979119.jpg" alt="Anchoring">
+                <img src="images/products/weight-plates-45723248132399.webp" alt="Anchoring">
                 <div class="mega-image-title">Anchoring</div>
               </a>
               <a href="products.html?cat=camping-cubes" class="mega-image-card">

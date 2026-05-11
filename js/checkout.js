@@ -269,16 +269,40 @@ function getProvince() {
 }
 
 // ===== Totals =====
+const SHIPPING_FLAT = 75;
+const FREE_SHIPPING_THRESHOLD = 500;
+
+function getShippingCost(subtotal) {
+ if (checkoutState.shippingMethod === 'pickup') return 0;
+ return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT;
+}
+
 function updateTotals() {
  const items = checkoutState.items;
  const subtotal = items.reduce((s, i) => s + (i.price || 0) * i.qty, 0);
  const province = getProvince();
  const taxInfo = TAX_RATES[province];
+ const shippingCost = getShippingCost(subtotal);
  const taxAmount = taxInfo ? Math.round(subtotal * taxInfo.total) / 100 : 0;
- const total = subtotal + taxAmount;
+ const total = subtotal + taxAmount + shippingCost;
+
+ checkoutState.shippingCost = shippingCost;
 
  const el = document.getElementById('summary-totals');
  if (!el) return;
+
+ let shippingDisplay;
+ if (checkoutState.shippingMethod === 'pickup') {
+  shippingDisplay = '<span style="color:#16a34a;font-weight:600;">Free (Pickup)</span>';
+ } else if (shippingCost === 0) {
+  shippingDisplay = '<span style="color:#16a34a;font-weight:600;">Free</span>';
+ } else {
+  shippingDisplay = `$${shippingCost.toFixed(2)}`;
+ }
+
+ const freeShipMsg = checkoutState.shippingMethod === 'shipping' && subtotal < FREE_SHIPPING_THRESHOLD
+  ? `<div class="summary-row" style="font-size:.75rem;color:#16a34a;padding:2px 0;">Spend $${(FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2)} more for free shipping!</div>`
+  : '';
 
  el.innerHTML = `
   <div class="summary-row">
@@ -291,8 +315,9 @@ function updateTotals() {
   </div>
   <div class="summary-row">
    <span>Shipping</span>
-   <span>${checkoutState.shippingMethod === 'pickup' ? 'Free (Pickup)' : 'Calculated at payment'}</span>
+   ${shippingDisplay}
   </div>
+  ${freeShipMsg}
   <div class="summary-row total">
    <span>Total</span>
    <span>$${total.toLocaleString('en-CA', {minimumFractionDigits: 2})} CAD</span>
@@ -354,6 +379,7 @@ async function startPayment() {
     items: checkoutState.items,
     province: province,
     shippingMethod: checkoutState.shippingMethod,
+    shippingCost: checkoutState.shippingCost || 0,
     customer: {
      name: `${firstName} ${lastName}`,
      email, phone,

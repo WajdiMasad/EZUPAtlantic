@@ -3,6 +3,9 @@ EZ-UP Atlantic -- Backend Server
 Serves static files + Stripe checkout API + Order Management
 """
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 import stripe
 from flask import Flask, request, jsonify, send_from_directory
@@ -12,8 +15,8 @@ from orders import (save_order, get_order, get_all_orders,
                     send_customer_confirmation, send_store_notification)
 
 # ===== CONFIGURATION =====
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_REPLACE_ME')
-STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_REPLACE_ME')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 DOMAIN = os.environ.get('DOMAIN', 'http://localhost:8080')
 
@@ -74,6 +77,7 @@ def create_checkout_session():
         customer_info = data.get('customer', {})
         province = data.get('province', 'NS').upper()
         shipping_method = data.get('shippingMethod', 'pickup')
+        shipping_cost = float(data.get('shippingCost', 0))
 
         if not items:
             return jsonify({'error': 'Cart is empty'}), 400
@@ -112,6 +116,14 @@ def create_checkout_session():
                 'quantity': 1,
             })
 
+        # Add shipping line item
+        if shipping_cost > 0:
+            line_items.append({
+                'price_data': {'currency': 'cad', 'product_data': {'name': 'Shipping — Flat Rate'},
+                               'unit_amount': int(round(shipping_cost * 100))},
+                'quantity': 1,
+            })
+
         session_params = {
             'payment_method_types': ['card'],
             'line_items': line_items,
@@ -141,7 +153,8 @@ def create_checkout_session():
             'subtotal': subtotal,
             'tax_rate': tax_info['total'],
             'tax_amount': tax_amount,
-            'total': subtotal + tax_amount,
+            'shipping_cost': shipping_cost,
+            'total': subtotal + tax_amount + shipping_cost,
         }
 
         return jsonify({'sessionId': session.id, 'url': session.url})
