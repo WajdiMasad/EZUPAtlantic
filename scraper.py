@@ -213,7 +213,7 @@ def scrape_product_detail(product):
         # Get description from meta tag
         meta_desc = soup.find('meta', attrs={'name': 'description'})
         if meta_desc:
-            product['description'] = meta_desc.get('content', '')[:300]
+            product['description'] = meta_desc.get('content', '').strip()
         
         # Get better image from product page
         og_img = soup.find('meta', attrs={'property': 'og:image'})
