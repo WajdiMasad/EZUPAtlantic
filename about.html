@@ -7,7 +7,7 @@
   <meta name="description" content="EZ-UP Atlantic is a division of Giant Promotions Ltd., Atlantic Canada's authorized E-Z UP® dealer based in Halifax, Nova Scotia. Learn about our commitment to quality event shelters and professional-grade canopy solutions.">
   <meta name="keywords" content="EZ-UP Atlantic, Giant Promotions, about us, authorized dealer, E-Z UP Canada, Halifax canopy dealer, Atlantic Canada event supplies">
   <link rel="canonical" href="https://ezupatlantic.ca/about.html">
-  <link rel="stylesheet" href="css/styles.css?v=3">
+  <link rel="stylesheet" href="css/styles.css?v=4">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎪</text></svg>">
 
   <!-- SEO: Open Graph -->
@@ -38,6 +38,65 @@
   <!-- Performance: Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- SEO: JSON-LD AboutPage + FAQ Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "name": "About EZ-UP Atlantic",
+        "url": "https://ezupatlantic.ca/about.html",
+        "description": "EZ-UP Atlantic is a division of Giant Promotions Ltd., Atlantic Canada's authorized E-Z UP dealer.",
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://ezupatlantic.ca/" },
+            { "@type": "ListItem", "position": 2, "name": "About", "item": "https://ezupatlantic.ca/about.html" }
+          ]
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is EZ-UP Atlantic an authorized dealer?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, EZ-UP Atlantic is a division of Giant Promotions Ltd. and is the authorized E-Z UP dealer for all of Atlantic Canada, including Nova Scotia, New Brunswick, Prince Edward Island, and Newfoundland & Labrador."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do you offer free shipping?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, we offer free shipping on all orders over $500 CAD. Orders under $500 ship for a flat rate of $75 within Canada."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Where are you located?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We are located at 3797 MacKintosh St, Halifax, NS B3K 5A6. You can also reach us by phone at 902-456-6487 or email at info@giantpro.com."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do you offer custom printing?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, we offer full custom printing on canopy tents, sidewalls, flags, banners, table covers, and more. Contact us for a personalized quote."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <!-- Top Bar -->

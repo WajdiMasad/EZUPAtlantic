@@ -46,8 +46,61 @@ async function loadProduct() {
 
   // Update page title and meta
   document.title = `${product.name} | EZ-UP Atlantic`;
-  document.querySelector('meta[name="description"]').content = `${product.name} — ${product.description || ''} Available from EZ-UP Atlantic, your authorized dealer in Atlantic Canada. ${product.priceDisplay} CAD.`;
+  const metaDesc = `${product.name} — ${(product.description || '').substring(0, 155)}. Available from EZ-UP Atlantic, your authorized dealer in Atlantic Canada. ${product.priceDisplay} CAD.`;
+  document.querySelector('meta[name="description"]').content = metaDesc;
   document.getElementById('bc-name').textContent = product.name;
+
+  // Dynamic canonical URL
+  const canonEl = document.querySelector('link[rel="canonical"]');
+  if (canonEl) canonEl.href = `https://ezupatlantic.ca/product.html?id=${product.id}`;
+
+  // Dynamic Open Graph tags
+  const ogUpdates = {
+   'og:title': `${product.name} | EZ-UP Atlantic`,
+   'og:description': metaDesc,
+   'og:url': `https://ezupatlantic.ca/product.html?id=${product.id}`,
+   'og:image': product.img ? `https://ezupatlantic.ca/${product.img}` : '',
+  };
+  for (const [prop, val] of Object.entries(ogUpdates)) {
+   const el = document.querySelector(`meta[property="${prop}"]`);
+   if (el) el.content = val;
+  }
+
+  // Dynamic Product JSON-LD Schema
+  const priceNum = product.price || 0;
+  const schemaScript = document.createElement('script');
+  schemaScript.type = 'application/ld+json';
+  schemaScript.textContent = JSON.stringify({
+   "@context": "https://schema.org",
+   "@type": "Product",
+   "name": product.name,
+   "description": product.description || '',
+   "image": product.img ? `https://ezupatlantic.ca/${product.img}` : '',
+   "brand": { "@type": "Brand", "name": "E-Z UP" },
+   "sku": product.id,
+   "url": `https://ezupatlantic.ca/product.html?id=${product.id}`,
+   "offers": {
+    "@type": "Offer",
+    "url": `https://ezupatlantic.ca/product.html?id=${product.id}`,
+    "priceCurrency": "CAD",
+    "price": priceNum > 0 ? priceNum.toFixed(2) : undefined,
+    "availability": "https://schema.org/InStock",
+    "seller": {
+     "@type": "Organization",
+     "name": "EZ-UP Atlantic"
+    },
+    "shippingDetails": {
+     "@type": "OfferShippingDetails",
+     "shippingRate": {
+      "@type": "MonetaryAmount",
+      "value": priceNum >= 500 ? "0" : "75.00",
+      "currency": "CAD"
+     },
+     "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "CA" }
+    }
+   }
+  });
+  document.head.appendChild(schemaScript);
 
   // Build specs table
   let specsHtml = '';
