@@ -80,16 +80,25 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   max-width: var(--max-width);
   margin: 0 auto;
 }
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-text {
-  font-size: 1.7rem;
+.logo { display: flex; align-items: center; gap: 6px; }
+.logo-img {
+  height: 38px;
+  width: auto;
+  display: block;
+}
+.logo-text-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.logo-atlantic {
+  font-size: 1.6rem;
   font-weight: 900;
-  color: var(--brand-blue);
+  color: var(--brand-red);
   letter-spacing: -0.5px;
   line-height: 1;
 }
-.logo-text span { color: var(--brand-red); }
-.logo-sub { font-size: 0.65rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 2.5px; margin-top: 4px; }
+.logo-sub { font-size: 0.6rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 2.5px; margin-top: 3px; }
 
 /* Nav */
 .nav-links { display: flex; gap: 40px; align-items: center; }
