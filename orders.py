@@ -410,6 +410,13 @@ def send_store_notification(order):
         for i in order.get('items', [])
     ])
 
+    shipping = order.get('shipping_address', {})
+    ship_text = ''
+    if order.get('shipping_method') == 'shipping' and shipping:
+        ship_text = f"{shipping.get('address','')}, {shipping.get('city','')}, {shipping.get('province','')} {shipping.get('postal','')}"
+    else:
+        ship_text = 'Local Pickup'
+
     html = f'''<html><body style="font-family:Arial,sans-serif;">
     <h2 style="color:#003B71;">New Order Received!</h2>
     <table style="font-size:14px;color:#333;">
@@ -417,7 +424,7 @@ def send_store_notification(order):
         <tr><td style="font-weight:bold;padding:4px 8px;">Customer:</td><td>{order.get("customer_name","")}</td></tr>
         <tr><td style="font-weight:bold;padding:4px 8px;">Email:</td><td>{order.get("customer_email","")}</td></tr>
         <tr><td style="font-weight:bold;padding:4px 8px;">Phone:</td><td>{order.get("customer_phone","")}</td></tr>
-        <tr><td style="font-weight:bold;padding:4px 8px;">Delivery:</td><td>{order.get("shipping_method","pickup").title()}</td></tr>
+        <tr><td style="font-weight:bold;padding:4px 8px;">Delivery:</td><td>{ship_text}</td></tr>
         <tr><td style="font-weight:bold;padding:4px 8px;">Province:</td><td>{order.get("province","")}</td></tr>
         {f'<tr><td style="font-weight:bold;padding:4px 8px;color:#E31937;">Discount:</td><td style="color:#E31937;">-${order.get("discount_amount", 0):,.2f}</td></tr>' if order.get("discount_amount") else ''}
         <tr><td style="font-weight:bold;padding:4px 8px;">Total:</td><td style="font-size:18px;color:#003B71;font-weight:bold;">${order.get("total",0):,.2f} CAD</td></tr>
