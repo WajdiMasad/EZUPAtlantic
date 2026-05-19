@@ -283,8 +283,8 @@ def _process_completed_payment(session_data):
     }
 
     # Get shipping address from Stripe if available
-    shipping = session_data.get('shipping_details', {})
-    if shipping and shipping.get('address'):
+    shipping = session_data.get('shipping_details')
+    if shipping and isinstance(shipping, dict) and shipping.get('address'):
         addr = shipping['address']
         order_data['shipping_address'] = {
             'address': addr.get('line1', ''),
@@ -293,6 +293,8 @@ def _process_completed_payment(session_data):
             'province': addr.get('state', ''),
             'postal': addr.get('postal_code', ''),
         }
+    elif cart and cart.get('customer', {}).get('shipping'):
+        order_data['shipping_address'] = cart['customer']['shipping']
 
     order_number = save_order(order_data)
     order_data['order_number'] = order_number
@@ -380,20 +382,22 @@ def get_session(session_id):
 
         meta = session.metadata or {}
         
+        session_dict = session.to_dict() if hasattr(session, 'to_dict') else session
+        
         return jsonify({
-            'id': session.id,
-            'status': session.payment_status,
+            'id': session_dict.get('id'),
+            'status': session_dict.get('payment_status'),
             'orderNumber': order_number,
             'customerName': meta.get('customer_name', ''),
             'customerPhone': meta.get('customer_phone', ''),
-            'customerEmail': session.customer_details.email if session.customer_details else None,
-            'amountTotal': session.amount_total / 100 if session.amount_total else 0,
-            'discountAmount': session.total_details.amount_discount / 100 if session.total_details else 0,
-            'currency': session.currency.upper() if session.currency else 'CAD',
-            'shippingAddress': session.shipping_details.address if session.shipping_details else None,
-            'lineItems': [{'name': item.description, 'quantity': item.quantity,
-                           'amount': item.amount_total / 100}
-                          for item in session.line_items.data] if getattr(session, 'line_items', None) else [],
+            'customerEmail': session_dict.get('customer_details', {}).get('email') if session_dict.get('customer_details') else None,
+            'amountTotal': (session_dict.get('amount_total') or 0) / 100,
+            'discountAmount': session_dict.get('total_details', {}).get('amount_discount', 0) / 100 if session_dict.get('total_details') else 0,
+            'currency': (session_dict.get('currency') or 'cad').upper(),
+            'shippingAddress': session_dict.get('shipping_details', {}).get('address') if session_dict.get('shipping_details') else None,
+            'lineItems': [{'name': item.get('description', ''), 'quantity': item.get('quantity', 1),
+                           'amount': (item.get('amount_total') or 0) / 100}
+                          for item in session_dict.get('line_items', {}).get('data', [])] if session_dict.get('line_items') else [],
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400
