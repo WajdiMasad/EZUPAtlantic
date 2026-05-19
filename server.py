@@ -16,7 +16,9 @@ from orders import (save_order, get_order, get_all_orders,
                     update_order_status, get_order_stats,
                     send_customer_confirmation, send_store_notification,
                     save_quote, get_all_quotes, update_quote_status,
-                    get_quote_stats, send_quote_notification)
+                    get_quote_stats, send_quote_notification,
+                    get_all_inventory, update_stock, bulk_import_inventory,
+                    deduct_stock, get_inventory_stats)
 
 # ===== CONFIGURATION =====
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
@@ -291,6 +293,9 @@ def _process_completed_payment(session_data):
     order_data['order_number'] = order_number
     print(f"[ORDER] Saved: {order_number} -- ${order_data['total']:,.2f}")
 
+    # Deduct inventory
+    deduct_stock(order_data.get('items', []))
+
     # Send emails
     send_customer_confirmation(order_data)
     send_store_notification(order_data)
@@ -342,6 +347,7 @@ def complete_order():
 
     order_number = save_order(order_data)
     order_data['order_number'] = order_number
+    deduct_stock(order_data.get('items', []))
     send_customer_confirmation(order_data)
     send_store_notification(order_data)
 
@@ -472,6 +478,48 @@ def admin_update_quote_status(quote_id):
 @admin_required
 def admin_quote_stats():
     return jsonify(get_quote_stats())
+
+
+# ===== API: INVENTORY =====
+@app.route('/api/admin/inventory', methods=['GET'])
+@admin_required
+def admin_inventory():
+    search = request.args.get('search', '')
+    filter_type = request.args.get('filter', 'all')
+    limit = int(request.args.get('limit', 100))
+    offset = int(request.args.get('offset', 0))
+    return jsonify(get_all_inventory(search, filter_type, limit, offset))
+
+
+@app.route('/api/admin/inventory/update', methods=['PUT'])
+@admin_required
+def admin_update_inventory():
+    data = request.json
+    product_id = data.get('product_id', '')
+    variant = data.get('variant')
+    qty = int(data.get('stock_qty', 0))
+    threshold = data.get('low_stock_threshold')
+    if threshold is not None:
+        threshold = int(threshold)
+    update_stock(product_id, variant, qty, threshold)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/admin/inventory/import', methods=['POST'])
+@admin_required
+def admin_import_inventory():
+    import json as _json
+    products_path = os.path.join(os.path.dirname(__file__), 'data', 'products.json')
+    with open(products_path, 'r', encoding='utf-8') as f:
+        products = _json.load(f)
+    result = bulk_import_inventory(products)
+    return jsonify(result)
+
+
+@app.route('/api/admin/inventory/stats', methods=['GET'])
+@admin_required
+def admin_inventory_stats():
+    return jsonify(get_inventory_stats())
 
 
 if __name__ == '__main__':

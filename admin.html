@@ -217,6 +217,24 @@
     .quote-status-new{background:#dbeafe;color:#1e40af}
     .quote-status-replied{background:#dcfce7;color:#166534}
     .quote-status-closed{background:#f3f4f6;color:#6b7280}
+    /* Inventory */
+    .inv-toolbar{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+    .inv-search{flex:1;min-width:200px;padding:10px 16px;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-sm);font-size:.85rem;font-family:inherit}
+    .inv-search:focus{outline:none;border-color:var(--brand-blue);box-shadow:0 0 0 3px rgba(0,59,113,0.1)}
+    .inv-filters{display:flex;gap:4px}
+    .inv-filter{padding:6px 14px;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-sm);background:#fff;cursor:pointer;font-size:.75rem;font-weight:600;font-family:inherit}
+    .inv-filter.active{background:var(--brand-blue);color:#fff;border-color:var(--brand-blue)}
+    .inv-import-btn{padding:8px 20px;background:#059669;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:.8rem;font-weight:700;font-family:inherit}
+    .inv-import-btn:hover{background:#047857}
+    .stock-input{width:60px;padding:4px 8px;border:1px solid var(--brand-gray-medium);border-radius:4px;text-align:center;font-size:.85rem;font-family:inherit}
+    .stock-input:focus{outline:none;border-color:var(--brand-blue);box-shadow:0 0 0 2px rgba(0,59,113,0.15)}
+    .stock-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.7rem;font-weight:700}
+    .stock-in{background:#dcfce7;color:#166534}
+    .stock-low{background:#fef3c7;color:#92400e}
+    .stock-out{background:#fee2e2;color:#991b1b}
+    .inv-pagination{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:.8rem;color:var(--text-secondary)}
+    .inv-pagination button{padding:6px 14px;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-sm);background:#fff;cursor:pointer;font-family:inherit;font-size:.8rem}
+    .inv-pagination button:disabled{opacity:.4;cursor:default}
     /* Login Screen */
     .login-screen{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px}
     .login-card{background:#fff;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-md);padding:48px;max-width:400px;width:100%;box-shadow:var(--shadow-md);text-align:center}
@@ -260,6 +278,7 @@
     <div class="admin-tabs">
       <button class="admin-tab active" onclick="switchTab('orders')">Orders</button>
       <button class="admin-tab" onclick="switchTab('quotes')">Quote Requests <span class="badge" id="new-quotes-badge" style="display:none">0</span></button>
+      <button class="admin-tab" onclick="switchTab('inventory')">Inventory <span class="badge" id="low-stock-badge" style="display:none;background:#f59e0b">0</span></button>
     </div>
 
     <!-- ORDERS TAB -->
@@ -291,6 +310,38 @@
         </tbody>
       </table>
     </div>
+
+    <!-- INVENTORY TAB -->
+    <div class="tab-panel" id="tab-inventory">
+      <div class="stats-grid" id="inv-stats-grid"></div>
+      <div class="inv-toolbar">
+        <input type="text" class="inv-search" id="inv-search" placeholder="Search by product name, SKU, or variant..." oninput="debounceInvSearch()">
+        <div class="inv-filters">
+          <button class="inv-filter active" onclick="setInvFilter('all')">All</button>
+          <button class="inv-filter" onclick="setInvFilter('instock')">In Stock</button>
+          <button class="inv-filter" onclick="setInvFilter('low')">Low Stock</button>
+          <button class="inv-filter" onclick="setInvFilter('out')">Out of Stock</button>
+        </div>
+        <button class="inv-import-btn" onclick="importCatalog()">Import from Catalog</button>
+      </div>
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Product</th><th>Variant</th><th>SKU</th><th>Category</th><th>Stock</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="inv-body">
+          <tr><td colspan="6" class="no-orders">Click "Import from Catalog" to populate inventory</td></tr>
+        </tbody>
+      </table>
+      <div class="inv-pagination" id="inv-pagination" style="display:none">
+        <span id="inv-showing"></span>
+        <div>
+          <button onclick="invPage(-1)" id="inv-prev" disabled>← Prev</button>
+          <button onclick="invPage(1)" id="inv-next">Next →</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Order Detail Modal -->
@@ -314,10 +365,11 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
       document.getElementById('tab-' + tab).classList.add('active');
+      if (tab === 'inventory') { loadInvStats(); loadInventory(); }
     }
 
     function refreshAll() {
-      loadStats(); loadOrders(); loadQuoteStats(); loadQuotes();
+      loadStats(); loadOrders(); loadQuoteStats(); loadQuotes(); loadInvStats();
     }
 
     // ===== ORDERS =====
@@ -525,6 +577,141 @@
 
     function closeQuoteModal() {
       document.getElementById('quote-modal').classList.remove('open');
+    }
+
+    // ===== INVENTORY =====
+    let _invFilter = 'all';
+    let _invSearch = '';
+    let _invOffset = 0;
+    const _invLimit = 50;
+    let _invDebounce = null;
+
+    function debounceInvSearch() {
+      clearTimeout(_invDebounce);
+      _invDebounce = setTimeout(() => {
+        _invSearch = document.getElementById('inv-search').value;
+        _invOffset = 0;
+        loadInventory();
+      }, 300);
+    }
+
+    function setInvFilter(f) {
+      _invFilter = f;
+      _invOffset = 0;
+      document.querySelectorAll('.inv-filter').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      loadInventory();
+    }
+
+    function invPage(dir) {
+      _invOffset += dir * _invLimit;
+      if (_invOffset < 0) _invOffset = 0;
+      loadInventory();
+    }
+
+    async function loadInvStats() {
+      try {
+        const res = await fetch('/api/admin/inventory/stats');
+        if (!res.ok) return;
+        const s = await res.json();
+        document.getElementById('inv-stats-grid').innerHTML = `
+          <div class="stat-card"><div class="value">${s.total_skus}</div><div class="label">Total SKUs</div></div>
+          <div class="stat-card"><div class="value">${s.total_units}</div><div class="label">Total Units</div></div>
+          <div class="stat-card"><div class="value" style="color:#059669">${s.in_stock}</div><div class="label">In Stock</div></div>
+          <div class="stat-card"><div class="value" style="color:#d97706">${s.low_stock}</div><div class="label">Low Stock</div></div>
+          <div class="stat-card"><div class="value" style="color:#dc2626">${s.out_of_stock}</div><div class="label">Out of Stock</div></div>
+        `;
+        // Update badge
+        const badge = document.getElementById('low-stock-badge');
+        const alertCount = s.low_stock + s.out_of_stock;
+        if (alertCount > 0 && s.total_skus > 0) {
+          badge.textContent = alertCount;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      } catch(e) {}
+    }
+
+    async function loadInventory() {
+      try {
+        const params = new URLSearchParams({
+          search: _invSearch, filter: _invFilter,
+          limit: _invLimit, offset: _invOffset
+        });
+        const res = await fetch('/api/admin/inventory?' + params);
+        if (!res.ok) return;
+        const data = await res.json();
+        const tbody = document.getElementById('inv-body');
+
+        if (!data.items.length) {
+          tbody.innerHTML = `<tr><td colspan="6" class="no-orders">${
+            _invSearch || _invFilter !== 'all'
+              ? 'No items match your search/filter'
+              : 'Click "Import from Catalog" to populate inventory'
+          }</td></tr>`;
+          document.getElementById('inv-pagination').style.display = 'none';
+          return;
+        }
+
+        tbody.innerHTML = data.items.map(item => {
+          const status = item.stock_qty === 0 ? 'out'
+            : item.stock_qty <= item.low_stock_threshold ? 'low' : 'in';
+          const statusLabel = status === 'out' ? 'Out of Stock'
+            : status === 'low' ? 'Low Stock' : 'In Stock';
+          const cat = (item.category || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          return `<tr>
+            <td style="font-weight:600">${item.product_name}</td>
+            <td>${item.variant || '—'}</td>
+            <td style="font-family:monospace;font-size:.8rem;color:var(--text-secondary)">${item.sku || '—'}</td>
+            <td style="font-size:.8rem">${cat}</td>
+            <td>
+              <input type="number" class="stock-input" value="${item.stock_qty}" min="0"
+                onchange="saveStock('${item.product_id}', ${item.variant ? `'${item.variant.replace(/'/g, "\\'")}'` : 'null'}, this.value)"
+                onkeydown="if(event.key==='Enter')this.blur()">
+            </td>
+            <td><span class="stock-badge stock-${status}">${statusLabel}</span></td>
+          </tr>`;
+        }).join('');
+
+        // Pagination
+        const pg = document.getElementById('inv-pagination');
+        pg.style.display = 'flex';
+        document.getElementById('inv-showing').textContent =
+          `Showing ${_invOffset + 1}–${Math.min(_invOffset + _invLimit, data.total)} of ${data.total}`;
+        document.getElementById('inv-prev').disabled = _invOffset === 0;
+        document.getElementById('inv-next').disabled = _invOffset + _invLimit >= data.total;
+      } catch(e) { console.error(e); }
+    }
+
+    async function saveStock(productId, variant, qty) {
+      try {
+        await fetch('/api/admin/inventory/update', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ product_id: productId, variant: variant, stock_qty: parseInt(qty) })
+        });
+        loadInvStats();
+        // Don't reload full table — just update badge inline
+      } catch(e) { console.error(e); }
+    }
+
+    async function importCatalog() {
+      if (!confirm('Import all products from the catalog into inventory? Existing entries will not be duplicated.')) return;
+      const btn = event.target;
+      btn.textContent = 'Importing...';
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/inventory/import', { method: 'POST' });
+        const data = await res.json();
+        alert(`Imported ${data.total} SKUs into inventory.`);
+        loadInvStats();
+        loadInventory();
+      } catch(e) {
+        alert('Import failed. Please try again.');
+      }
+      btn.textContent = 'Import from Catalog';
+      btn.disabled = false;
     }
 
     // ===== AUTH =====

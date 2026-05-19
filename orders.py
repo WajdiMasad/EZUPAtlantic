@@ -60,8 +60,163 @@ def init_db():
         created_at TEXT,
         notes TEXT
     )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS inventory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        variant TEXT,
+        sku TEXT,
+        category TEXT,
+        stock_qty INTEGER DEFAULT 0,
+        low_stock_threshold INTEGER DEFAULT 2,
+        last_updated TEXT,
+        UNIQUE(product_id, variant)
+    )''')
     conn.commit()
     conn.close()
+
+
+# ===== INVENTORY MANAGEMENT =====
+
+def get_all_inventory(search='', filter_type='all', limit=100, offset=0):
+    """Get inventory with optional search and filter"""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    where_clauses = []
+    params = []
+
+    if search:
+        where_clauses.append("(product_name LIKE ? OR sku LIKE ? OR variant LIKE ?)")
+        s = f'%{search}%'
+        params.extend([s, s, s])
+
+    if filter_type == 'low':
+        where_clauses.append("stock_qty > 0 AND stock_qty <= low_stock_threshold")
+    elif filter_type == 'out':
+        where_clauses.append("stock_qty = 0")
+    elif filter_type == 'instock':
+        where_clauses.append("stock_qty > low_stock_threshold")
+
+    where = 'WHERE ' + ' AND '.join(where_clauses) if where_clauses else ''
+    rows = conn.execute(
+        f'SELECT * FROM inventory {where} ORDER BY product_name, variant LIMIT ? OFFSET ?',
+        params + [limit, offset]
+    ).fetchall()
+
+    total = conn.execute(
+        f'SELECT COUNT(*) FROM inventory {where}', params
+    ).fetchone()[0]
+
+    conn.close()
+    return {
+        'items': [dict(r) for r in rows],
+        'total': total,
+        'limit': limit,
+        'offset': offset,
+    }
+
+
+def update_stock(product_id, variant, qty, threshold=None):
+    """Update stock quantity for a product+variant"""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    now = datetime.now().isoformat()
+
+    if threshold is not None:
+        conn.execute('''UPDATE inventory
+            SET stock_qty=?, low_stock_threshold=?, last_updated=?
+            WHERE product_id=? AND (variant=? OR (variant IS NULL AND ? IS NULL))''',
+            (qty, threshold, now, product_id, variant, variant))
+    else:
+        conn.execute('''UPDATE inventory
+            SET stock_qty=?, last_updated=?
+            WHERE product_id=? AND (variant=? OR (variant IS NULL AND ? IS NULL))''',
+            (qty, now, product_id, variant, variant))
+
+    conn.commit()
+    conn.close()
+
+
+def bulk_import_inventory(products_data):
+    """Import product catalog into inventory table (skip existing)"""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    now = datetime.now().isoformat()
+    imported = 0
+
+    for product in products_data:
+        pid = product.get('id', '')
+        pname = product.get('name', '')
+        category = product.get('category', '')
+        variants = product.get('variants', [])
+
+        if variants:
+            for v in variants:
+                try:
+                    conn.execute('''INSERT OR IGNORE INTO inventory
+                        (product_id, product_name, variant, sku, category, stock_qty, last_updated)
+                        VALUES (?, ?, ?, ?, ?, 0, ?)''',
+                        (pid, pname, v.get('name'), v.get('sku', ''), category, now))
+                    imported += 1
+                except sqlite3.IntegrityError:
+                    pass
+        else:
+            try:
+                conn.execute('''INSERT OR IGNORE INTO inventory
+                    (product_id, product_name, variant, sku, category, stock_qty, last_updated)
+                    VALUES (?, ?, NULL, ?, ?, 0, ?)''',
+                    (pid, pname, product.get('sku', ''), category, now))
+                imported += 1
+            except sqlite3.IntegrityError:
+                pass
+
+    conn.commit()
+    total = conn.execute('SELECT COUNT(*) FROM inventory').fetchone()[0]
+    conn.close()
+    return {'imported': imported, 'total': total}
+
+
+def deduct_stock(items):
+    """Deduct stock for ordered items. Called after order is saved."""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    now = datetime.now().isoformat()
+
+    for item in items:
+        product_id = item.get('id', '')
+        variant = item.get('variant', None)
+        qty = item.get('qty', 1)
+
+        if variant:
+            conn.execute('''UPDATE inventory
+                SET stock_qty = MAX(0, stock_qty - ?), last_updated = ?
+                WHERE product_id = ? AND variant = ?''',
+                (qty, now, product_id, variant))
+        else:
+            conn.execute('''UPDATE inventory
+                SET stock_qty = MAX(0, stock_qty - ?), last_updated = ?
+                WHERE product_id = ? AND variant IS NULL''',
+                (qty, now, product_id))
+
+    conn.commit()
+    conn.close()
+
+
+def get_inventory_stats():
+    """Get inventory dashboard stats"""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    stats = {
+        'total_skus': conn.execute('SELECT COUNT(*) FROM inventory').fetchone()[0],
+        'in_stock': conn.execute('SELECT COUNT(*) FROM inventory WHERE stock_qty > low_stock_threshold').fetchone()[0],
+        'low_stock': conn.execute('SELECT COUNT(*) FROM inventory WHERE stock_qty > 0 AND stock_qty <= low_stock_threshold').fetchone()[0],
+        'out_of_stock': conn.execute('SELECT COUNT(*) FROM inventory WHERE stock_qty = 0').fetchone()[0],
+        'total_units': conn.execute('SELECT COALESCE(SUM(stock_qty), 0) FROM inventory').fetchone()[0],
+    }
+    conn.close()
+    return stats
 
 
 def generate_order_number():
