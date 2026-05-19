@@ -217,12 +217,43 @@
     .quote-status-new{background:#dbeafe;color:#1e40af}
     .quote-status-replied{background:#dcfce7;color:#166534}
     .quote-status-closed{background:#f3f4f6;color:#6b7280}
+    /* Login Screen */
+    .login-screen{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px}
+    .login-card{background:#fff;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-md);padding:48px;max-width:400px;width:100%;box-shadow:var(--shadow-md);text-align:center}
+    .login-card h2{color:var(--brand-blue);margin:0 0 8px;font-size:1.5rem}
+    .login-card p{color:var(--text-secondary);font-size:.85rem;margin:0 0 32px}
+    .login-card input{width:100%;padding:12px 16px;border:1px solid var(--brand-gray-medium);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;box-sizing:border-box;margin-bottom:12px}
+    .login-card input:focus{outline:none;border-color:var(--brand-blue);box-shadow:0 0 0 3px rgba(0,59,113,0.1)}
+    .login-card button{width:100%;padding:12px;background:var(--brand-blue);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}
+    .login-card button:hover{background:#002a52}
+    .login-error{color:var(--brand-red);font-size:.8rem;font-weight:600;margin-top:12px;display:none}
+    .admin-dashboard{display:none}
+    .logout-btn{background:none;border:1px solid var(--brand-gray-medium);padding:6px 16px;border-radius:var(--radius-sm);cursor:pointer;font-size:.8rem;font-family:inherit;color:var(--text-secondary)}
+    .logout-btn:hover{border-color:var(--brand-red);color:var(--brand-red)}
   </style>
 
+  <!-- LOGIN SCREEN -->
+  <div class="login-screen" id="login-screen">
+    <div class="login-card">
+      <h2>Admin Login</h2>
+      <p>Enter your credentials to access the dashboard</p>
+      <form onsubmit="doLogin(event)">
+        <input type="text" id="login-user" placeholder="Username" autocomplete="username" required>
+        <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" required>
+        <button type="submit" id="login-btn">Sign In</button>
+      </form>
+      <div class="login-error" id="login-error">Invalid username or password</div>
+    </div>
+  </div>
+
+  <div class="admin-dashboard" id="admin-dashboard">
   <div class="admin-layout">
     <div class="admin-header">
       <h1>Admin Dashboard</h1>
-      <button class="refresh-btn" onclick="refreshAll()">Refresh</button>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button class="refresh-btn" onclick="refreshAll()">Refresh</button>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+      </div>
     </div>
 
     <!-- Tabs -->
@@ -273,6 +304,8 @@
     <div class="order-detail-overlay" onclick="closeQuoteModal()"></div>
     <div class="order-detail-content" id="quote-detail"></div>
   </div>
+
+  </div><!-- /admin-dashboard -->
 
   <script>
     // ===== TAB SWITCHING =====
@@ -494,11 +527,66 @@
       document.getElementById('quote-modal').classList.remove('open');
     }
 
-    // Init
-    loadStats();
-    loadOrders();
-    loadQuoteStats();
-    loadQuotes();
+    // ===== AUTH =====
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/admin/check');
+        const data = await res.json();
+        if (data.authenticated) {
+          showDashboard();
+        }
+      } catch(e) {}
+    }
+
+    async function doLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errEl = document.getElementById('login-error');
+      btn.textContent = 'Signing in...';
+      btn.disabled = true;
+      errEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            username: document.getElementById('login-user').value,
+            password: document.getElementById('login-pass').value
+          })
+        });
+        if (res.ok) {
+          showDashboard();
+        } else {
+          errEl.style.display = 'block';
+        }
+      } catch(err) {
+        errEl.textContent = 'Connection error';
+        errEl.style.display = 'block';
+      }
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+    }
+
+    async function doLogout() {
+      await fetch('/api/admin/logout', {method:'POST'});
+      document.getElementById('admin-dashboard').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('login-user').value = '';
+      document.getElementById('login-pass').value = '';
+    }
+
+    function showDashboard() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-dashboard').style.display = 'block';
+      loadStats();
+      loadOrders();
+      loadQuoteStats();
+      loadQuotes();
+    }
+
+    // Check if already logged in
+    checkAuth();
   </script>
 </body>
 </html>

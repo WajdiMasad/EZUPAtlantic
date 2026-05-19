@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Email Previews — Order Emails</title>
+  <style>
+    body { background: #e5e7eb; margin: 0; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .preview-label { max-width: 620px; margin: 0 auto 12px; font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 1px; }
+    .email-wrapper { max-width: 620px; margin: 0 auto 60px; }
+    .email-meta { background: #1f2937; color: #9ca3af; padding: 14px 20px; border-radius: 12px 12px 0 0; font-size: 12px; }
+    .email-meta strong { color: #fff; }
+    .email-body { background: #fff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); overflow: hidden; }
+  </style>
+</head>
+<body>
+
+<!-- ============================== -->
+<!-- EMAIL 1: CUSTOMER CONFIRMATION -->
+<!-- ============================== -->
+<div class="preview-label">📧 Email 1 — Customer Order Confirmation (sent to customer)</div>
+<div class="email-wrapper">
+  <div class="email-meta">
+    <strong>From:</strong> EZ-UP Atlantic &lt;sales@giantpro.ca&gt;<br>
+    <strong>To:</strong> john@smithenterprises.ca<br>
+    <strong>Subject:</strong> Order Confirmation — EZUP-20260519-0001
+  </div>
+  <div class="email-body">
+    <!-- Actual template from orders.py send_customer_confirmation -->
+    <div style="max-width:600px;margin:0 auto;background:#fff;font-family:Arial,Helvetica,sans-serif;">
+      <div style="background:#003B71;padding:32px;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">EZ-UP <span style="color:#E31937;">Atlantic</span></h1>
+        <p style="color:rgba(255,255,255,0.7);margin:8px 0 0;font-size:13px;">AUTHORIZED DEALER</p>
+      </div>
+      <div style="padding:32px;">
+        <h2 style="color:#003B71;margin-top:0;">Thank you for your order!</h2>
+        <p style="color:#555;line-height:1.6;">Hi John Smith,</p>
+        <p style="color:#555;line-height:1.6;">We have received your order and it is now being processed. You will receive another email when your order ships or is ready for pickup.</p>
+
+        <div style="background:#f5f5f7;border-radius:8px;padding:20px;margin:24px 0;">
+          <table style="width:100%;font-size:14px;color:#333;">
+            <tr><td style="font-weight:bold;padding:4px 0;">Order Number</td><td style="text-align:right;">EZUP-20260519-0001</td></tr>
+            <tr><td style="font-weight:bold;padding:4px 0;">Date</td><td style="text-align:right;">May 19, 2026</td></tr>
+            <tr><td style="font-weight:bold;padding:4px 0;">Delivery</td><td style="text-align:right;">Shipping — 123 Main St, Dartmouth, NS B2Y 1A1</td></tr>
+          </table>
+        </div>
+
+        <h3 style="color:#003B71;border-bottom:2px solid #003B71;padding-bottom:8px;">Order Details</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <thead><tr style="color:#999;font-size:12px;text-transform:uppercase;">
+            <th style="text-align:left;padding:8px 0;">Item</th>
+            <th style="text-align:center;padding:8px 0;">Qty</th>
+            <th style="text-align:right;padding:8px 0;">Amount</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;">Eclipse Shelter<br><small style="color:#666">10' x 10' — Blue</small></td>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:center;">1</td>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;">$1,299.00</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;">Duralon Sidewall 4 Pack</td>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:center;">1</td>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;">$240.00</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;">Deluxe Roller Bag</td>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:center;">1</td>
+              <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;">$149.00</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table style="width:100%;font-size:14px;margin-top:16px;">
+          <tr><td style="padding:4px 0;color:#666;">Subtotal</td><td style="text-align:right;">$1,688.00</td></tr>
+          <tr><td style="padding:4px 0;color:#666;">Tax (NS — HST 14%)</td><td style="text-align:right;">$236.32</td></tr>
+          <tr><td style="padding:4px 0;color:#666;">Shipping</td><td style="text-align:right;">Free</td></tr>
+          <tr style="font-size:18px;font-weight:bold;color:#003B71;">
+            <td style="padding:12px 0;border-top:2px solid #003B71;">Total</td>
+            <td style="text-align:right;padding:12px 0;border-top:2px solid #003B71;">$1,924.32 CAD</td>
+          </tr>
+        </table>
+
+        <div style="margin-top:32px;padding-top:24px;border-top:1px solid #eee;font-size:13px;color:#999;text-align:center;">
+          <p>Questions? Contact us at <a href="mailto:info@giantpro.com" style="color:#003B71;">info@giantpro.com</a> or call <a href="tel:902-456-6487" style="color:#003B71;">902-456-6487</a></p>
+          <p style="margin-top:16px;">&copy; 2026 EZ-UP Atlantic, a division of Giant Promotions Ltd.<br>3797 MacKintosh St, Halifax, NS B3K 5A6</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ -->
+<!-- EMAIL 2: STORE ORDER NOTIFICATION -->
+<!-- ================================ -->
+<div class="preview-label">📧 Email 2 — Store Notification (sent to info@giantpro.com)</div>
+<div class="email-wrapper">
+  <div class="email-meta">
+    <strong>From:</strong> EZ-UP Atlantic &lt;sales@giantpro.ca&gt;<br>
+    <strong>To:</strong> info@giantpro.com<br>
+    <strong>Subject:</strong> New Order EZUP-20260519-0001 — $1,924.32
+  </div>
+  <div class="email-body">
+    <div style="padding:32px;font-family:Arial,sans-serif;">
+      <h2 style="color:#003B71;">New Order Received!</h2>
+      <table style="font-size:14px;color:#333;">
+        <tr><td style="font-weight:bold;padding:4px 8px;">Order:</td><td>EZUP-20260519-0001</td></tr>
+        <tr><td style="font-weight:bold;padding:4px 8px;">Customer:</td><td>John Smith</td></tr>
+        <tr><td style="font-weight:bold;padding:4px 8px;">Email:</td><td>john@smithenterprises.ca</td></tr>
+        <tr><td style="font-weight:bold;padding:4px 8px;">Phone:</td><td>902-555-1234</td></tr>
+        <tr><td style="font-weight:bold;padding:4px 8px;">Delivery:</td><td>Shipping</td></tr>
+        <tr><td style="font-weight:bold;padding:4px 8px;">Province:</td><td>NS</td></tr>
+        <tr><td style="font-weight:bold;padding:4px 8px;">Total:</td><td style="font-size:18px;color:#003B71;font-weight:bold;">$1,924.32 CAD</td></tr>
+      </table>
+      <h3>Items</h3>
+      <pre style="background:#f5f5f7;padding:16px;border-radius:8px;font-size:13px;">  1x Eclipse Shelter (10' x 10' — Blue) — $1,299.00
+  1x Duralon Sidewall 4 Pack — $240.00
+  1x Deluxe Roller Bag — $149.00</pre>
+      <p><a href="http://localhost:8080/admin.html" style="display:inline-block;background:#003B71;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;">View in Admin Panel</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

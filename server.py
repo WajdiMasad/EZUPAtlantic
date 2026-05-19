@@ -8,7 +8,8 @@ load_dotenv()
 
 import json
 import stripe
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session, redirect
+from functools import wraps
 from flask_cors import CORS
 from orders import (save_order, get_order, get_all_orders,
                     update_order_status, get_order_stats,
@@ -21,6 +22,8 @@ STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 DOMAIN = os.environ.get('DOMAIN', 'http://localhost:8080')
+ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')
+ADMIN_PASS = os.environ.get('ADMIN_PASS', 'changeme')
 
 stripe.api_key = STRIPE_SECRET_KEY
 
@@ -45,7 +48,38 @@ TAX_RATES = {
 _pending_checkouts = {}
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(32).hex())
 CORS(app)
+
+
+# ===== ADMIN AUTH =====
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    data = request.json or {}
+    if data.get('username') == ADMIN_USER and data.get('password') == ADMIN_PASS:
+        session['admin_logged_in'] = True
+        return jsonify({'ok': True})
+    return jsonify({'error': 'Invalid credentials'}), 401
+
+
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/admin/check', methods=['GET'])
+def admin_check():
+    return jsonify({'authenticated': bool(session.get('admin_logged_in'))})
 
 
 # ===== STATIC FILE SERVING =====
@@ -318,12 +352,14 @@ def get_session(session_id):
 
 # ===== API: ADMIN =====
 @app.route('/api/admin/orders', methods=['GET'])
+@admin_required
 def admin_orders():
     limit = int(request.args.get('limit', 50))
     offset = int(request.args.get('offset', 0))
     return jsonify(get_all_orders(limit, offset))
 
 @app.route('/api/admin/orders/<order_number>', methods=['GET'])
+@admin_required
 def admin_order_detail(order_number):
     order = get_order(order_number)
     if not order:
@@ -331,12 +367,14 @@ def admin_order_detail(order_number):
     return jsonify(order)
 
 @app.route('/api/admin/orders/<order_number>/status', methods=['PUT'])
+@admin_required
 def admin_update_status(order_number):
     data = request.json
     update_order_status(order_number, data.get('status'), data.get('notes'))
     return jsonify({'ok': True})
 
 @app.route('/api/admin/stats', methods=['GET'])
+@admin_required
 def admin_stats():
     return jsonify(get_order_stats())
 
@@ -371,6 +409,7 @@ def submit_quote():
 
 
 @app.route('/api/admin/quotes', methods=['GET'])
+@admin_required
 def admin_quotes():
     limit = int(request.args.get('limit', 50))
     offset = int(request.args.get('offset', 0))
@@ -378,6 +417,7 @@ def admin_quotes():
 
 
 @app.route('/api/admin/quotes/<quote_id>/status', methods=['PUT'])
+@admin_required
 def admin_update_quote_status(quote_id):
     data = request.json
     update_quote_status(quote_id, data.get('status'), data.get('notes'))
@@ -385,6 +425,7 @@ def admin_update_quote_status(quote_id):
 
 
 @app.route('/api/admin/quote-stats', methods=['GET'])
+@admin_required
 def admin_quote_stats():
     return jsonify(get_quote_stats())
 
