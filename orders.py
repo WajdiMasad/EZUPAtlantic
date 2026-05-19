@@ -19,6 +19,7 @@ SMTP_USER = os.environ.get('SMTP_USER', '')
 SMTP_PASS = os.environ.get('SMTP_PASS', '')
 STORE_EMAIL = os.environ.get('STORE_EMAIL', 'info@giantpro.com')
 STORE_NAME = 'EZ-UP Atlantic'
+DOMAIN = os.environ.get('DOMAIN', 'http://localhost:8080')
 
 
 def init_db():
@@ -263,7 +264,7 @@ def send_store_notification(order):
     </table>
     <h3>Items</h3>
     <pre style="background:#f5f5f7;padding:16px;border-radius:8px;font-size:13px;">{items_text}</pre>
-    <p><a href="http://localhost:8080/admin.html" style="color:#003B71;">View in Admin Panel</a></p>
+    <p><a href="{DOMAIN}/admin.html" style="color:#003B71;">View in Admin Panel</a></p>
     </body></html>'''
 
     return _send_email(STORE_EMAIL, f'New Order {order.get("order_number","")} — ${order.get("total",0):,.2f}', html)
@@ -371,7 +372,7 @@ def send_quote_notification(data, quote_id):
         <strong>Message:</strong><br>
         <p style="margin:8px 0 0;white-space:pre-wrap;">{data.get('message','')}</p>
     </div>
-    <p style="margin-top:20px;"><a href="http://localhost:8080/admin.html" style="color:#003B71;font-weight:bold;">View in Admin Panel</a></p>
+    <p style="margin-top:20px;"><a href="{DOMAIN}/admin.html" style="color:#003B71;font-weight:bold;">View in Admin Panel</a></p>
     </body></html>'''
 
     return _send_email(STORE_EMAIL, f'New Quote Request {quote_id} — {data.get("name","")}', html)
