@@ -258,8 +258,11 @@ def stripe_webhook():
 
 
 def _process_completed_payment(session_data):
+    if hasattr(session_data, 'to_dict'):
+        session_data = session_data.to_dict()
+        
     session_id = session_data.get('id', '')
-    meta = session_data.get('metadata', {})
+    meta = session_data.get('metadata', {}) or {}
     cart = _pending_checkouts.pop(session_id, None)
 
     # Build order data
