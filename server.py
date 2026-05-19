@@ -198,6 +198,7 @@ def create_checkout_session():
             'payment_method_types': ['card'],
             'line_items': line_items,
             'mode': 'payment',
+            'allow_promotion_codes': True,
             'success_url': f"{DOMAIN}/confirmation.html?session_id={{CHECKOUT_SESSION_ID}}",
             'cancel_url': f"{DOMAIN}/checkout.html",
             'customer_email': customer_info.get('email'),
