@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import json
+import html as _html
 import stripe
 from flask import Flask, request, jsonify, send_from_directory, session, redirect
 from functools import wraps
@@ -52,6 +53,34 @@ app.secret_key = os.environ.get('SECRET_KEY', os.urandom(32).hex())
 CORS(app)
 
 
+# ===== SECURITY HEADERS =====
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    if request.is_secure:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
+
+# ===== RATE LIMITING (simple in-memory) =====
+import time as _time
+_rate_limits = {}  # ip -> [timestamps]
+
+def _check_rate_limit(key, max_requests=10, window=60):
+    """Returns True if rate limited"""
+    now = _time.time()
+    if key not in _rate_limits:
+        _rate_limits[key] = []
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < window]
+    if len(_rate_limits[key]) >= max_requests:
+        return True
+    _rate_limits[key].append(now)
+    return False
+
 # ===== ADMIN AUTH =====
 def admin_required(f):
     @wraps(f)
@@ -64,6 +93,9 @@ def admin_required(f):
 
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
+    # Rate limit: 5 attempts per minute per IP
+    if _check_rate_limit(f'login:{request.remote_addr}', max_requests=5, window=60):
+        return jsonify({'error': 'Too many login attempts. Try again later.'}), 429
     data = request.json or {}
     if data.get('username') == ADMIN_USER and data.get('password') == ADMIN_PASS:
         session['admin_logged_in'] = True
@@ -382,6 +414,9 @@ def admin_stats():
 # ===== API: QUOTE REQUESTS =====
 @app.route('/api/quote-request', methods=['POST'])
 def submit_quote():
+    # Rate limit: 3 submissions per minute per IP
+    if _check_rate_limit(f'quote:{request.remote_addr}', max_requests=3, window=60):
+        return jsonify({'error': 'Too many submissions. Please wait a moment.'}), 429
     try:
         data = request.json
         # Validate required fields
@@ -392,11 +427,20 @@ def submit_quote():
         if not name or not email or not message:
             return jsonify({'error': 'Name, email, and message are required'}), 400
 
+        # Sanitize input to prevent XSS
+        sanitized = {
+            'name': _html.escape(name),
+            'email': _html.escape(email),
+            'phone': _html.escape((data.get('phone') or '').strip()),
+            'product': _html.escape((data.get('product') or '').strip()),
+            'message': _html.escape(message),
+        }
+
         # Save to database
-        quote_id = save_quote(data)
+        quote_id = save_quote(sanitized)
 
         # Send email notification to store
-        send_quote_notification(data, quote_id)
+        send_quote_notification(sanitized, quote_id)
 
         return jsonify({
             'ok': True,
