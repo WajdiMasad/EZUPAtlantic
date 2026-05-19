@@ -12,7 +12,9 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from orders import (save_order, get_order, get_all_orders,
                     update_order_status, get_order_stats,
-                    send_customer_confirmation, send_store_notification)
+                    send_customer_confirmation, send_store_notification,
+                    save_quote, get_all_quotes, update_quote_status,
+                    get_quote_stats, send_quote_notification)
 
 # ===== CONFIGURATION =====
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
@@ -337,6 +339,54 @@ def admin_update_status(order_number):
 @app.route('/api/admin/stats', methods=['GET'])
 def admin_stats():
     return jsonify(get_order_stats())
+
+
+# ===== API: QUOTE REQUESTS =====
+@app.route('/api/quote-request', methods=['POST'])
+def submit_quote():
+    try:
+        data = request.json
+        # Validate required fields
+        name = (data.get('name') or '').strip()
+        email = (data.get('email') or '').strip()
+        message = (data.get('message') or '').strip()
+
+        if not name or not email or not message:
+            return jsonify({'error': 'Name, email, and message are required'}), 400
+
+        # Save to database
+        quote_id = save_quote(data)
+
+        # Send email notification to store
+        send_quote_notification(data, quote_id)
+
+        return jsonify({
+            'ok': True,
+            'quoteId': quote_id,
+            'message': 'Your quote request has been submitted. We will respond within 24 hours.'
+        })
+    except Exception as e:
+        print(f'[QUOTE] Error: {e}')
+        return jsonify({'error': 'Failed to submit quote request. Please try again.'}), 500
+
+
+@app.route('/api/admin/quotes', methods=['GET'])
+def admin_quotes():
+    limit = int(request.args.get('limit', 50))
+    offset = int(request.args.get('offset', 0))
+    return jsonify(get_all_quotes(limit, offset))
+
+
+@app.route('/api/admin/quotes/<quote_id>/status', methods=['PUT'])
+def admin_update_quote_status(quote_id):
+    data = request.json
+    update_quote_status(quote_id, data.get('status'), data.get('notes'))
+    return jsonify({'ok': True})
+
+
+@app.route('/api/admin/quote-stats', methods=['GET'])
+def admin_quote_stats():
+    return jsonify(get_quote_stats())
 
 
 if __name__ == '__main__':

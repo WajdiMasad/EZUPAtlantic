@@ -47,6 +47,18 @@ def init_db():
         created_at TEXT,
         updated_at TEXT
     )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS quotes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quote_id TEXT UNIQUE NOT NULL,
+        status TEXT DEFAULT 'new',
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
+        product_interest TEXT,
+        message TEXT,
+        created_at TEXT,
+        notes TEXT
+    )''')
     conn.commit()
     conn.close()
 
@@ -274,6 +286,95 @@ def _send_email(to, subject, html_body):
     except Exception as e:
         print(f"[EMAIL] Failed to send to {to}: {e}")
         return False
+
+
+# ===== QUOTE MANAGEMENT =====
+
+def generate_quote_id():
+    now = datetime.now()
+    conn = sqlite3.connect(DB_PATH)
+    count = conn.execute('SELECT COUNT(*) FROM quotes WHERE created_at LIKE ?',
+                         (now.strftime('%Y-%m-%d') + '%',)).fetchone()[0]
+    conn.close()
+    return f"QR-{now.strftime('%Y%m%d')}-{count + 1:04d}"
+
+
+def save_quote(data):
+    init_db()
+    quote_id = generate_quote_id()
+    now = datetime.now().isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute('''INSERT INTO quotes (quote_id, name, email, phone, product_interest, message, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                 (quote_id, data.get('name',''), data.get('email',''),
+                  data.get('phone',''), data.get('product',''),
+                  data.get('message',''), now))
+    conn.commit()
+    conn.close()
+    return quote_id
+
+
+def get_all_quotes(limit=50, offset=0):
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute('SELECT * FROM quotes ORDER BY id DESC LIMIT ? OFFSET ?',
+                        (limit, offset)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def update_quote_status(quote_id, status, notes=None):
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    if notes:
+        conn.execute('UPDATE quotes SET status=?, notes=? WHERE quote_id=?',
+                     (status, notes, quote_id))
+    else:
+        conn.execute('UPDATE quotes SET status=? WHERE quote_id=?',
+                     (status, quote_id))
+    conn.commit()
+    conn.close()
+
+
+def get_quote_stats():
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    stats = {
+        'total_quotes': conn.execute('SELECT COUNT(*) FROM quotes').fetchone()[0],
+        'new': conn.execute("SELECT COUNT(*) FROM quotes WHERE status='new'").fetchone()[0],
+        'replied': conn.execute("SELECT COUNT(*) FROM quotes WHERE status='replied'").fetchone()[0],
+        'closed': conn.execute("SELECT COUNT(*) FROM quotes WHERE status='closed'").fetchone()[0],
+        'today_quotes': conn.execute("SELECT COUNT(*) FROM quotes WHERE date(created_at)=date('now')").fetchone()[0],
+    }
+    conn.close()
+    return stats
+
+
+def send_quote_notification(data, quote_id):
+    """Email the store owner when a new quote request comes in"""
+    if not SMTP_USER:
+        print("[EMAIL] SMTP not configured, skipping quote notification")
+        return False
+
+    html = f'''<html><body style="font-family:Arial,sans-serif;">
+    <h2 style="color:#003B71;">New Quote Request!</h2>
+    <p style="color:#666;">A customer has submitted a quote request on the website.</p>
+    <table style="font-size:14px;color:#333;border-collapse:collapse;">
+        <tr><td style="font-weight:bold;padding:8px 12px;background:#f5f5f7;">Quote ID:</td><td style="padding:8px 12px;background:#f5f5f7;">{quote_id}</td></tr>
+        <tr><td style="font-weight:bold;padding:8px 12px;">Name:</td><td style="padding:8px 12px;">{data.get('name','')}</td></tr>
+        <tr><td style="font-weight:bold;padding:8px 12px;background:#f5f5f7;">Email:</td><td style="padding:8px 12px;background:#f5f5f7;"><a href="mailto:{data.get('email','')}">{data.get('email','')}</a></td></tr>
+        <tr><td style="font-weight:bold;padding:8px 12px;">Phone:</td><td style="padding:8px 12px;">{data.get('phone','N/A')}</td></tr>
+        <tr><td style="font-weight:bold;padding:8px 12px;background:#f5f5f7;">Product Interest:</td><td style="padding:8px 12px;background:#f5f5f7;">{data.get('product','N/A')}</td></tr>
+    </table>
+    <div style="margin-top:16px;padding:16px;background:#f5f5f7;border-radius:8px;border-left:4px solid #003B71;">
+        <strong>Message:</strong><br>
+        <p style="margin:8px 0 0;white-space:pre-wrap;">{data.get('message','')}</p>
+    </div>
+    <p style="margin-top:20px;"><a href="http://localhost:8080/admin.html" style="color:#003B71;font-weight:bold;">View in Admin Panel</a></p>
+    </body></html>'''
+
+    return _send_email(STORE_EMAIL, f'New Quote Request {quote_id} — {data.get("name","")}', html)
 
 
 # Initialize DB on import

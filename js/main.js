@@ -41,29 +41,58 @@ document.querySelectorAll('.category-card, .product-card, .model-card, .trust-it
 // Quote form submission
 const quoteForm = document.getElementById('quote-form');
 if (quoteForm) {
- quoteForm.addEventListener('submit', (e) => {
+ quoteForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const formData = new FormData(quoteForm);
   const data = Object.fromEntries(formData);
-  
-  // Build mailto link as fallback
-  const subject = encodeURIComponent(`Quote Request: ${data.product || 'E-Z UP Products'}`);
-  const body = encodeURIComponent(
-   `Name: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone || 'N/A'}\nProduct Interest: ${data.product || 'N/A'}\n\nMessage:\n${data.message || 'N/A'}`
-  );
-  
-  // Show success message
   const btn = quoteForm.querySelector('button[type="submit"]');
-  const originalText = btn.textContent;
-  btn.textContent = ' Request Sent!';
-  btn.style.background = '#22c55e';
-  
-  setTimeout(() => {
-   window.location.href = `mailto:info@giantpro.com?subject=${subject}&body=${body}`;
-   btn.textContent = originalText;
-   btn.style.background = '';
-   quoteForm.reset();
-  }, 1000);
+  const originalHTML = btn.innerHTML;
+
+  // Loading state
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10"/></svg> Sending...';
+  btn.style.opacity = '0.7';
+
+  try {
+   const res = await fetch('/api/quote-request', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+   });
+   const result = await res.json();
+
+   if (res.ok && result.ok) {
+    // Success
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Request Sent!';
+    btn.style.background = '#22c55e';
+    btn.style.opacity = '1';
+    quoteForm.reset();
+
+    // Show success banner
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:#dcfce7;color:#166534;padding:16px 24px;border-radius:8px;margin-top:16px;font-weight:600;display:flex;align-items:center;gap:10px;';
+    banner.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ${result.message} <strong style="margin-left:auto;">Ref: ${result.quoteId}</strong>`;
+    quoteForm.parentElement.appendChild(banner);
+
+    setTimeout(() => {
+     btn.innerHTML = originalHTML;
+     btn.style.background = '';
+     btn.disabled = false;
+    }, 5000);
+   } else {
+    throw new Error(result.error || 'Submission failed');
+   }
+  } catch (err) {
+   btn.innerHTML = 'Error — Try Again';
+   btn.style.background = '#ef4444';
+   btn.style.opacity = '1';
+   setTimeout(() => {
+    btn.innerHTML = originalHTML;
+    btn.style.background = '';
+    btn.style.opacity = '1';
+    btn.disabled = false;
+   }, 3000);
+  }
  });
 }
 
