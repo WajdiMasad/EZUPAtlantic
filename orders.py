@@ -361,6 +361,9 @@ def send_customer_confirmation(order):
             <table style="width:100%;font-size:14px;color:#333;">
                 <tr><td style="font-weight:bold;padding:4px 0;">Order Number</td><td style="text-align:right;">{order.get("order_number","")}</td></tr>
                 <tr><td style="font-weight:bold;padding:4px 0;">Date</td><td style="text-align:right;">{datetime.now().strftime("%B %d, %Y")}</td></tr>
+                <tr><td style="font-weight:bold;padding:4px 0;">Name</td><td style="text-align:right;">{order.get("customer_name","")}</td></tr>
+                <tr><td style="font-weight:bold;padding:4px 0;">Email</td><td style="text-align:right;">{order.get("customer_email","")}</td></tr>
+                <tr><td style="font-weight:bold;padding:4px 0;">Phone</td><td style="text-align:right;">{order.get("customer_phone","")}</td></tr>
                 <tr><td style="font-weight:bold;padding:4px 0;">Delivery</td><td style="text-align:right;">{ship_text}</td></tr>
             </table>
         </div>
