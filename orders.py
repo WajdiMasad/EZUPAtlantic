@@ -377,6 +377,7 @@ def send_customer_confirmation(order):
 
         <table style="width:100%;font-size:14px;margin-top:16px;">
             <tr><td style="padding:4px 0;color:#666;">Subtotal</td><td style="text-align:right;">${order.get("subtotal",0):,.2f}</td></tr>
+            {f'<tr><td style="padding:4px 0;color:#E31937;">Discount</td><td style="text-align:right;color:#E31937;">-${order.get("discount_amount", 0):,.2f}</td></tr>' if order.get("discount_amount") else ''}
             <tr><td style="padding:4px 0;color:#666;">Tax ({order.get("province","")})</td><td style="text-align:right;">${order.get("tax_amount",0):,.2f}</td></tr>
             <tr><td style="padding:4px 0;color:#666;">Shipping</td><td style="text-align:right;">{"Free" if order.get("shipping_method")=="pickup" else f"${order.get('shipping_cost',0):,.2f}"}</td></tr>
             <tr style="font-size:18px;font-weight:bold;color:#003B71;">
@@ -415,6 +416,7 @@ def send_store_notification(order):
         <tr><td style="font-weight:bold;padding:4px 8px;">Phone:</td><td>{order.get("customer_phone","")}</td></tr>
         <tr><td style="font-weight:bold;padding:4px 8px;">Delivery:</td><td>{order.get("shipping_method","pickup").title()}</td></tr>
         <tr><td style="font-weight:bold;padding:4px 8px;">Province:</td><td>{order.get("province","")}</td></tr>
+        {f'<tr><td style="font-weight:bold;padding:4px 8px;color:#E31937;">Discount:</td><td style="color:#E31937;">-${order.get("discount_amount", 0):,.2f}</td></tr>' if order.get("discount_amount") else ''}
         <tr><td style="font-weight:bold;padding:4px 8px;">Total:</td><td style="font-size:18px;color:#003B71;font-weight:bold;">${order.get("total",0):,.2f} CAD</td></tr>
     </table>
     <h3>Items</h3>

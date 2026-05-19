@@ -278,7 +278,8 @@ def _process_completed_payment(session_data):
         'subtotal': cart['subtotal'] if cart else (session_data.get('amount_total', 0) / 100),
         'tax_rate': cart['tax_rate'] if cart else 0,
         'tax_amount': cart['tax_amount'] if cart else 0,
-        'total': cart['total'] if cart else (session_data.get('amount_total', 0) / 100),
+        'discount_amount': (session_data.get('total_details', {}) or {}).get('amount_discount', 0) / 100,
+        'total': session_data.get('amount_total', 0) / 100,
     }
 
     # Get shipping address from Stripe if available
@@ -377,16 +378,22 @@ def get_session(session_id):
             conn.close()
             order_number = existing[0] if existing else None
 
+        meta = session.metadata or {}
+        
         return jsonify({
             'id': session.id,
             'status': session.payment_status,
             'orderNumber': order_number,
+            'customerName': meta.get('customer_name', ''),
+            'customerPhone': meta.get('customer_phone', ''),
             'customerEmail': session.customer_details.email if session.customer_details else None,
-            'amountTotal': session.amount_total / 100,
-            'currency': session.currency.upper(),
+            'amountTotal': session.amount_total / 100 if session.amount_total else 0,
+            'discountAmount': session.total_details.amount_discount / 100 if session.total_details else 0,
+            'currency': session.currency.upper() if session.currency else 'CAD',
+            'shippingAddress': session.shipping_details.address if session.shipping_details else None,
             'lineItems': [{'name': item.description, 'quantity': item.quantity,
                            'amount': item.amount_total / 100}
-                          for item in session.line_items.data] if session.line_items else [],
+                          for item in session.line_items.data] if getattr(session, 'line_items', None) else [],
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400
