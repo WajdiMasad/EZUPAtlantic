@@ -9,6 +9,8 @@ load_dotenv()
 import json
 import html as _html
 import stripe
+import threading
+import traceback
 from flask import Flask, request, jsonify, send_from_directory, session, redirect
 from functools import wraps
 from flask_cors import CORS
@@ -252,60 +254,95 @@ def stripe_webhook():
 
     if event.get('type') == 'checkout.session.completed':
         session_data = event['data']['object']
-        _process_completed_payment(session_data)
+        # Process the payment in a background thread to prevent timeouts and return 200 immediately
+        thread = threading.Thread(target=_process_completed_payment, args=(session_data,))
+        thread.start()
 
     return jsonify({'received': True})
 
 
 def _process_completed_payment(session_data):
-    if hasattr(session_data, 'to_dict'):
-        session_data = session_data.to_dict()
-        
-    session_id = session_data.get('id', '')
-    meta = session_data.get('metadata', {}) or {}
-    cart = _pending_checkouts.pop(session_id, None)
+    try:
+        if hasattr(session_data, 'to_dict'):
+            session_data = session_data.to_dict()
+            
+        session_id = session_data.get('id', '')
+        if not session_id:
+            print("[WEBHOOK ERROR] No session ID found in session_data")
+            return
 
-    # Build order data
-    order_data = {
-        'stripe_session_id': session_id,
-        'status': 'paid',
-        'customer_name': meta.get('customer_name', ''),
-        'customer_email': session_data.get('customer_details', {}).get('email', ''),
-        'customer_phone': meta.get('customer_phone', ''),
-        'province': meta.get('province', 'NS'),
-        'shipping_method': meta.get('shipping_method', 'pickup'),
-        'items': cart['items'] if cart else [],
-        'subtotal': cart['subtotal'] if cart else (session_data.get('amount_total', 0) / 100),
-        'tax_rate': cart['tax_rate'] if cart else 0,
-        'tax_amount': cart['tax_amount'] if cart else 0,
-        'discount_amount': (session_data.get('total_details', {}) or {}).get('amount_discount', 0) / 100,
-        'total': session_data.get('amount_total', 0) / 100,
-    }
+        # Check if order already exists for this session to prevent duplicates
+        import sqlite3
+        try:
+            conn = sqlite3.connect(os.path.join('data', 'orders.db'), timeout=30.0)
+            existing = conn.execute('SELECT order_number FROM orders WHERE stripe_session_id=?', (session_id,)).fetchone()
+            conn.close()
+            if existing:
+                print(f"[ORDER] Webhook/fallback received but order already exists for session {session_id}: {existing[0]}")
+                return
+        except Exception as e:
+            print(f"[ORDER] Error checking for existing order: {e}")
 
-    # Get shipping address from Stripe if available
-    shipping = session_data.get('shipping_details')
-    if shipping and isinstance(shipping, dict) and shipping.get('address'):
-        addr = shipping['address']
-        order_data['shipping_address'] = {
-            'address': addr.get('line1', ''),
-            'address2': addr.get('line2', ''),
-            'city': addr.get('city', ''),
-            'province': addr.get('state', ''),
-            'postal': addr.get('postal_code', ''),
+        meta = session_data.get('metadata', {}) or {}
+        cart = _pending_checkouts.pop(session_id, None)
+
+        # Build order data
+        order_data = {
+            'stripe_session_id': session_id,
+            'status': 'paid',
+            'customer_name': meta.get('customer_name', ''),
+            'customer_email': (session_data.get('customer_details') or {}).get('email', ''),
+            'customer_phone': meta.get('customer_phone', ''),
+            'province': meta.get('province', 'NS'),
+            'shipping_method': meta.get('shipping_method', 'pickup'),
+            'items': cart['items'] if cart else [],
+            'subtotal': cart['subtotal'] if cart else (session_data.get('amount_total', 0) / 100),
+            'tax_rate': cart['tax_rate'] if cart else 0,
+            'tax_amount': cart['tax_amount'] if cart else 0,
+            'shipping_cost': cart['shipping_cost'] if cart else 0,
+            'discount_amount': (session_data.get('total_details') or {}).get('amount_discount', 0) / 100,
+            'total': session_data.get('amount_total', 0) / 100,
         }
-    elif cart and cart.get('customer', {}).get('shipping'):
-        order_data['shipping_address'] = cart['customer']['shipping']
 
-    order_number = save_order(order_data)
-    order_data['order_number'] = order_number
-    print(f"[ORDER] Saved: {order_number} -- ${order_data['total']:,.2f}")
+        # Get shipping address from Stripe if available
+        shipping = session_data.get('shipping_details')
+        if shipping and isinstance(shipping, dict) and shipping.get('address'):
+            addr = shipping['address']
+            order_data['shipping_address'] = {
+                'address': addr.get('line1', ''),
+                'address2': addr.get('line2', ''),
+                'city': addr.get('city', ''),
+                'province': addr.get('state', ''),
+                'postal': addr.get('postal_code', ''),
+            }
+        elif cart and cart.get('customer', {}).get('shipping'):
+            order_data['shipping_address'] = cart['customer']['shipping']
 
-    # Deduct inventory
-    deduct_stock(order_data.get('items', []))
+        order_number = save_order(order_data)
+        order_data['order_number'] = order_number
+        print(f"[ORDER] Saved: {order_number} -- ${order_data['total']:,.2f}")
 
-    # Send emails
-    send_customer_confirmation(order_data)
-    send_store_notification(order_data)
+        # Deduct inventory
+        try:
+            deduct_stock(order_data.get('items', []))
+        except Exception as e:
+            print(f"[WEBHOOK ERROR] Failed to deduct stock: {e}")
+
+        # Send emails
+        try:
+            send_customer_confirmation(order_data)
+        except Exception as e:
+            print(f"[WEBHOOK ERROR] Failed to send customer confirmation: {e}")
+            
+        try:
+            send_store_notification(order_data)
+        except Exception as e:
+            print(f"[WEBHOOK ERROR] Failed to send store notification: {e}")
+            
+    except Exception as e:
+        import traceback
+        print(f"[WEBHOOK ERROR] Exception in background payment processing: {e}")
+        traceback.print_exc()
 
 
 # ===== API: FALLBACK ORDER CREATION (for dev/testing without webhooks) =====
